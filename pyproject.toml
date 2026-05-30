@@ -1,0 +1,8 @@
+[project]
+name = "rv-resolutioner"
+version = "0.1.0"
+description = "Static prototype for parsing and publishing Radikale Venstre resolutions."
+requires-python = ">=3.11"
+dependencies = [
+    "python-docx>=1.1,<2"
+]
