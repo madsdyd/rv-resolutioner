@@ -1,0 +1,5 @@
+PARSER_DIAGNOSIS*.md
+.venv/
+PARSER_DIAGNOSIS.generated.json
+VALIDATION_REPORT.txt
+public/resulutions.json

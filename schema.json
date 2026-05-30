@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Radikale Venstre resolutions dataset",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "source_documents",
+    "resolutions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO timestamp for when this JSON file was generated."
+    },
+    "source_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["year", "filename", "adopted_date", "valid_from", "valid_until", "resolution_count"],
+        "properties": {
+          "year": { "type": "integer" },
+          "filename": { "type": "string" },
+          "adopted_date": { "type": "string" },
+          "valid_from": { "type": "string" },
+          "valid_until": { "type": "string" },
+          "resolution_count": { "type": "integer" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "resolutions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "year",
+          "title",
+          "body",
+          "valid_from",
+          "valid_until",
+          "chapter_title"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "year": { "type": "integer" },
+          "adopted_date": { "type": "string" },
+          "valid_from": { "type": "string" },
+          "valid_until": { "type": "string" },
+          "code": { "type": "string" },
+          "chapter_code": { "type": ["string", "null"] },
+          "chapter_title": { "type": "string" },
+          "local_chapter_code": { "type": ["string", "null"] },
+          "local_chapter_title": { "type": "string" },
+          "local_resolution_code": { "type": ["string", "null"] },
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "keywords": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "generated_search_terms": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "source_file": { "type": "string" }
+        }
+      }
+    }
+  }
+}

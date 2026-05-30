@@ -1,0 +1,214 @@
+/*
+ * Radikale Venstre resolutions demo styling.
+ *
+ * The CSS is intentionally plain and framework-free. The page should look clean
+ * enough for a prototype, but still be easy to inspect and modify in IntelliJ.
+ * Colour variables are collected at the top so a later branding pass can adjust
+ * the visual identity without hunting through the whole file.
+ */
+
+/* Global design tokens and typography. */
+:root {
+  --rv-green: #009540;
+  --rv-magenta: #e5007e;
+  --ink: #151515;
+  --muted: #626262;
+  --line: #dedede;
+  --surface: #ffffff;
+  --soft: #f5f7f5;
+  --soft-magenta: #fff1f8;
+  --shadow: 0 16px 45px rgba(0,0,0,.08);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Predictable sizing makes the responsive layout easier to maintain. */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: linear-gradient(135deg, #f7fbf8 0%, #ffffff 44%, #fff5fa 100%);
+  min-height: 100vh;
+}
+
+/* Header: party mark, page title and short explanatory text. */
+.site-header {
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
+  padding: 2rem clamp(1rem, 5vw, 4rem) 1.5rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(10px);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 1.2rem;
+  background: var(--rv-green);
+  color: white;
+  font-weight: 850;
+  font-size: 2.25rem;
+  box-shadow: 0 10px 25px rgba(0,149,64,.22);
+}
+
+h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.75rem); line-height: 1.05; }
+.eyebrow { margin: 0 0 .25rem; color: var(--rv-magenta); font-weight: 750; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+.lede { margin: .35rem 0 0; color: var(--muted); }
+
+/* Main two-column layout: sticky filters on the left, results on the right. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 1.25rem;
+  padding: 1.25rem clamp(1rem, 5vw, 4rem) 3rem;
+}
+
+.panel, .result-card, dialog article {
+  background: rgba(255,255,255,.94);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* Filter panel stays visible on larger screens while users scroll results. */
+.filters {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+  padding: 1rem;
+}
+
+label { display: block; font-weight: 720; margin: .4rem 0 .35rem; }
+/* Form controls are deliberately large for quick filtering during demos. */
+input[type="search"], select {
+  width: 100%;
+  border: 1px solid #cfcfcf;
+  border-radius: .85rem;
+  padding: .85rem .9rem;
+  font: inherit;
+  background: white;
+}
+
+input[type="search"]:focus, select:focus {
+  outline: 3px solid rgba(229,0,126,.18);
+  border-color: var(--rv-magenta);
+}
+
+.filter-row { margin-top: .9rem; }
+.checkbox { display: flex; gap: .6rem; align-items: center; margin-top: 1rem; font-weight: 620; }
+.checkbox input { width: 1.1rem; height: 1.1rem; accent-color: var(--rv-green); }
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: .72rem 1rem;
+  font: inherit;
+  font-weight: 760;
+  cursor: pointer;
+  background: var(--rv-green);
+  color: white;
+}
+#reset { width: 100%; margin-top: 1rem; background: var(--ink); }
+#copyLink { background: var(--rv-magenta); white-space: nowrap; }
+button:hover { filter: brightness(.96); }
+
+.hint {
+  margin-top: 1rem;
+  padding: .85rem;
+  border-radius: .9rem;
+  color: #303030;
+  background: var(--soft);
+  font-size: .92rem;
+  line-height: 1.4;
+}
+
+/* Result toolbar: count summary and shareable-link button. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.summary { color: var(--muted); margin: 0; }
+.results { display: grid; gap: .85rem; }
+
+/* Individual result cards in the search result list. */
+.result-card {
+  padding: 1rem;
+  display: grid;
+  gap: .6rem;
+}
+.result-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.result-card h2 button {
+  all: unset;
+  cursor: pointer;
+  font-weight: 810;
+  line-height: 1.25;
+}
+.result-card h2 button:hover { color: var(--rv-magenta); }
+.meta { color: var(--muted); font-size: .9rem; margin: 0; }
+.excerpt { margin: 0; color: #282828; line-height: 1.48; }
+mark { background: #ffe066; padding: 0 .08em; border-radius: .2em; }
+.tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+.tag {
+  border-radius: 999px;
+  background: var(--soft-magenta);
+  color: #7c0044;
+  padding: .28rem .55rem;
+  font-size: .78rem;
+  font-weight: 680;
+}
+.valid { color: var(--rv-green); font-weight: 760; }
+.expired { color: #8b3b00; font-weight: 760; }
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,.8);
+  color: var(--muted);
+}
+
+/* Native dialog element used for full resolution details. */
+dialog {
+  width: min(860px, calc(100vw - 2rem));
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+dialog::backdrop { background: rgba(0,0,0,.42); }
+.details { position: relative; padding: 1.3rem; max-height: 82vh; overflow: auto; }
+.details h2 { margin: .2rem 2rem 1rem 0; }
+.close {
+  position: absolute;
+  top: .85rem;
+  right: .85rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  background: var(--ink);
+  font-size: 1.5rem;
+}
+.body-text { white-space: pre-wrap; line-height: 1.6; }
+
+/* Single-column layout on phones and narrow windows. */
+@media (max-width: 760px) {
+  /* Header: party mark, page title and short explanatory text. */
+.site-header { align-items: flex-start; }
+  .brand-mark { width: 3.2rem; height: 3.2rem; font-size: 1.7rem; border-radius: .95rem; }
+  /* Main two-column layout: sticky filters on the left, results on the right. */
+.layout { grid-template-columns: 1fr; }
+  /* Filter panel stays visible on larger screens while users scroll results. */
+.filters { position: static; }
+  /* Result toolbar: count summary and shareable-link button. */
+.toolbar { align-items: stretch; flex-direction: column; }
+  #copyLink { width: 100%; }
+}
