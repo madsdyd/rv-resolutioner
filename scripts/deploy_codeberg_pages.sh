@@ -72,10 +72,10 @@ ensure_pages_branch_exists() {
 
 rebuild_public_data() {
   log "Rebuilding public/resolutions.json"
-  python3 scripts/parse_docx.py source/*.docx --out "${PUBLIC_DIR}/resolutions.json"
+  uv run python scripts/parse_docx.py source/*.docx --out "${PUBLIC_DIR}/resolutions.json"
 
   log "Validating generated data"
-  python3 scripts/validate_data.py "${PUBLIC_DIR}/resolutions.json"
+  uv run python scripts/validate_data.py "${PUBLIC_DIR}/resolutions.json"
 }
 
 prepare_worktree() {
@@ -122,7 +122,7 @@ commit_and_push() {
 
 main() {
   require_command git
-  require_command python3
+  require_command uv
 
   local root
   root="$(repo_root)" || fail "This script must be run from inside a git repository."

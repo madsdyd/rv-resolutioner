@@ -26,12 +26,35 @@ years.json            Adoption and validity dates per year
 schema.json           JSON schema for the canonical output format
 ```
 
+## Python environment with uv
+
+This project uses uv for Python dependency management.
+
+The Python dependencies are declared in pyproject.toml. The lock file uv.lock should be committed, so the parser and validation scripts can be run with reproducible dependencies.
+
+Create or update the local virtual environment:
+
+```
+uv sync
+```
+
+Run the parser and validation scripts:
+
+```bash
+uv run python scripts/parse_docx.py source/*.docx --out public/resolutions.json
+uv run python scripts/validate_data.py public/resolutions.json
+```
+
+The `.venv/` directory is local developer state and should not be committed.
+
+The generated `public/resolutions.json` file is not committed on the main branch. It is rebuilt from the Word documents and committed only to the pages branch as part of the published static site.
+
 ## Generate data
 
 From the project root:
 
 ```bash
-python3 scripts/parse_docx.py source/*.docx --out public/resolutions.json
+uv run python scripts/parse_docx.py source/*.docx --out public/resolutions.json
 ```
 
 The parser reads `years.json` by default. Update that file before publishing new yearly data, especially if a date is currently marked as a placeholder.
@@ -58,13 +81,13 @@ The frontend can still read the older raw-array format during prototyping, but n
 Run the sanity checker after parsing:
 
 ```bash
-python3 scripts/validate_data.py public/resolutions.json
+uv run python scripts/validate_data.py public/resolutions.json
 ```
 
 Optionally write a report to disk:
 
 ```bash
-python3 scripts/validate_data.py public/resolutions.json --report VALIDATION_REPORT.txt
+uv run python scripts/validate_data.py public/resolutions.json --report VALIDATION_REPORT.txt
 ```
 
 Warnings do not always mean the data is wrong. They identify places worth reviewing, such as very short resolution bodies or possible page-number artefacts.
@@ -72,7 +95,7 @@ Warnings do not always mean the data is wrong. They identify places worth review
 ## Run the website locally
 
 ```bash
-python3 -m http.server 8080 -d public
+uv run python -m http.server 8080 -d public
 ```
 
 Then open:
@@ -99,9 +122,9 @@ Run this test after changes to the parser, data format, or frontend. The purpose
 
 ```bash
 rm -f public/resolutions.json
-python3 scripts/parse_docx.py source/*.docx --out public/resolutions.json
-python3 scripts/validate_data.py public/resolutions.json
-python3 -m http.server 8080 -d public
+python scripts/parse_docx.py source/*.docx --out public/resolutions.json
+python scripts/validate_data.py public/resolutions.json
+python -m http.server 8080 -d public
 ```
 
 Then open http://localhost:8080.
@@ -176,8 +199,8 @@ After the webhook has been created, pushing to the `pages` branch should trigger
 From the `main` branch, rebuild and validate the static data:
 
 ```bash
-python3 scripts/parse_docx.py source/*.docx --out public/resolutions.json
-python3 scripts/validate_data.py public/resolutions.json
+python scripts/parse_docx.py source/*.docx --out public/resolutions.json
+python scripts/validate_data.py public/resolutions.json
 ```
 
 Then publish the contents of `public/` to the `pages` branch:
