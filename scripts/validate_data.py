@@ -84,22 +84,22 @@ def validate_policy_area_mapping(
                 "Run parse_docx.py with --update-policy-areas to add it as an identity mapping."
             )
 
-def parse_date(value: str, field: str, record_id: str, warnings: list[str]) -> _dt.date | None:
-    """Parse an ISO date and turn parse failures into validation warnings."""
+def parse_date(value: str, field: str, record_id: str, errors: list[str]) -> _dt.date | None:
+    """Parse an ISO date and turn parse failures into validation errors."""
     try:
         return _dt.date.fromisoformat(value)
     except Exception:
-        warnings.append(f"{record_id}: invalid {field}: {value!r}")
+        errors.append(f"{record_id}: invalid {field}: {value!r}")
         return None
 
 
-def validate_record(record: dict[str, Any], warnings: list[str]) -> None:
-    """Validate one resolution record and append human-readable warnings."""
+def validate_record(record: dict[str, Any], warnings: list[str], errors: list[str]) -> None:
+    """Validate one resolution record and append human-readable findings."""
     record_id = str(record.get("id", "<missing id>"))
 
     for field in REQUIRED_FIELDS:
         if field not in record or record[field] in (None, ""):
-            warnings.append(f"{record_id}: missing required field {field!r}")
+            errors.append(f"{record_id}: missing required field {field!r}")
 
     title = str(record.get("title", "")).strip()
     body = str(record.get("body", "")).strip()
@@ -109,10 +109,10 @@ def validate_record(record: dict[str, Any], warnings: list[str]) -> None:
     if len(body) < 40:
         warnings.append(f"{record_id}: suspiciously short body ({len(body)} chars): {title!r}")
 
-    valid_from = parse_date(str(record.get("valid_from", "")), "valid_from", record_id, warnings)
-    valid_until = parse_date(str(record.get("valid_until", "")), "valid_until", record_id, warnings)
+    valid_from = parse_date(str(record.get("valid_from", "")), "valid_from", record_id, errors)
+    valid_until = parse_date(str(record.get("valid_until", "")), "valid_until", record_id, errors)
     if valid_from and valid_until and valid_until <= valid_from:
-        warnings.append(f"{record_id}: valid_until is not after valid_from")
+        errors.append(f"{record_id}: valid_until is not after valid_from")
 
     # This catches the common DOCX artefact where a page number is pulled into a
     # body paragraph by itself. It is a warning because some real lists contain
@@ -121,7 +121,12 @@ def validate_record(record: dict[str, Any], warnings: list[str]) -> None:
         warnings.append(f"{record_id}: body may contain an isolated page number")
 
 
-def build_report(resolutions: list[dict[str, Any]], metadata: dict[str, Any], warnings: list[str]) -> str:
+def build_report(
+    resolutions: list[dict[str, Any]],
+    metadata: dict[str, Any],
+    warnings: list[str],
+    errors: list[str],
+) -> str:
     """Create a concise import report suitable for terminal output or a file."""
     by_year = Counter(record.get("year") for record in resolutions)
     by_year_chapter: dict[int, Counter[str]] = defaultdict(Counter)
@@ -156,6 +161,15 @@ def build_report(resolutions: list[dict[str, Any]], metadata: dict[str, Any], wa
             lines.append(f"  - {chapter}: {count}")
     lines.append("")
 
+    lines.append("Errors")
+    lines.append("------")
+    if errors:
+        for error in errors:
+            lines.append(f"- {error}")
+    else:
+        lines.append("No errors.")
+    lines.append("")
+
     lines.append("Warnings")
     lines.append("--------")
     if warnings:
@@ -176,6 +190,7 @@ def main() -> int:
 
     resolutions, metadata = load_resolutions(args.json_file)
     warnings: list[str] = []
+    errors: list[str] = []
     policy_areas = load_policy_areas(args.policy_areas)
     validate_policy_area_mapping(resolutions, policy_areas, warnings)
 
@@ -183,17 +198,17 @@ def main() -> int:
     for record in resolutions:
         record_id = record.get("id")
         if record_id in seen_ids:
-            warnings.append(f"{record_id}: duplicate id")
+            errors.append(f"{record_id}: duplicate id")
         seen_ids.add(record_id)
-        validate_record(record, warnings)
+        validate_record(record, warnings, errors)
 
-    report = build_report(resolutions, metadata, warnings)
+    report = build_report(resolutions, metadata, warnings, errors)
     print(report)
 
     if args.report:
         args.report.write_text(report + "\n", encoding="utf-8")
 
-    return 1 if warnings else 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
