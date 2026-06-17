@@ -20,7 +20,7 @@ const state = {
   data: null,
   query: "",
   year: "all",
-  chapter: "all",
+  policyArea: "all",
   activeOnly: true,
 };
 
@@ -89,9 +89,9 @@ function scoreResolution(r, terms) {
   const title = normalise(r.title);
   const body = normalise(r.body);
   const code = normalise(r.code);
-  const chapter = normalise(r.chapter_title);
+  const policyArea = r.policy_area || r.chapter_title || r.local_chapter_title || "Ukendt";
   const keywords = normalise([...(r.keywords || []), ...(r.generated_search_terms || [])].join(" "));
-  const blob = `${code} ${title} ${chapter} ${body} ${keywords}`;
+  const blob = `${code} ${title} ${policyArea} ${body} ${keywords}`;
 
   let score = 0;
   for (const term of terms) {
@@ -99,7 +99,7 @@ function scoreResolution(r, terms) {
     if (code === term) score += 60;
     if (title.includes(term)) score += 25;
     if (keywords.includes(term)) score += 14;
-    if (chapter.includes(term)) score += 8;
+    if (policyArea.includes(term)) score += 8;
     if (body.includes(term)) score += 4;
   }
   return score;
@@ -145,7 +145,7 @@ function applyUrlParams() {
   const params = new URLSearchParams(location.search);
   state.query = params.get("q") || "";
   state.year = params.get("year") || "all";
-  state.chapter = params.get("chapter") || "all";
+  state.policyArea = params.get("policy_area") || params.get("chapter") || "all";
   state.activeOnly = params.get("active") !== "0";
 }
 
@@ -153,7 +153,7 @@ function updateUrl() {
   const params = new URLSearchParams();
   if (state.query) params.set("q", state.query);
   if (state.year !== "all") params.set("year", state.year);
-  if (state.chapter !== "all") params.set("chapter", state.chapter);
+  if (state.policyArea !== "all") params.set("policy_area", state.policyArea);
   if (!state.activeOnly) params.set("active", "0");
   history.replaceState(null, "", `${location.pathname}${params.toString() ? "?" + params.toString() : ""}`);
 }
@@ -162,15 +162,16 @@ function populateFilters() {
   const years = [...new Set(state.data.resolutions.map(r => r.year))].sort((a, b) => b - a);
   els.year.innerHTML = `<option value="all">Alle år</option>` + years.map(y => `<option value="${y}">${y}</option>`).join("");
 
-  // Policy areas are derived from chapter titles. Local chapter codes are not
-  // used as stable cross-year identifiers because they can change from year to year.
-  els.chapter.innerHTML = `<option value="all">Alle politikområder</option>` + state.data.chapters
+  // Policy areas are derived from canonical policy_area values, not the source
+  // chapter titles. This keeps the UI stable even when chapter wording differs
+  // slightly between years.
+  els.chapter.innerHTML = `<option value="all">Alle politikområder</option>` + state.data.policyAreas
     .sort((a, b) => collator.compare(a.title, b.title))
     .map(c => `<option value="${escapeHtml(c.code)}">${escapeHtml(c.title)}</option>`).join("");
 
   els.search.value = state.query;
   els.year.value = state.year;
-  els.chapter.value = state.chapter;
+  els.chapter.value = state.policyArea;
   els.activeOnly.checked = state.activeOnly;
 }
 
@@ -180,7 +181,7 @@ function filteredResults() {
     .map(r => ({ r, score: scoreResolution(r, terms) }))
     .filter(x => x.score > 0)
     .filter(x => state.year === "all" || String(x.r.year) === state.year)
-    .filter(x => state.chapter === "all" || x.r.chapter_title === state.chapter)
+    .filter(x => state.policyArea === "all" || (x.r.policy_area || x.r.chapter_title) === state.policyArea)
     .filter(x => !state.activeOnly || isActive(x.r))
     .sort((a, b) => b.score - a.score || a.r.year - b.r.year || collator.compare(a.r.code, b.r.code))
     .map(x => x.r);
@@ -202,7 +203,7 @@ function render() {
     const active = isActive(r);
     const tags = [...(r.keywords || [])].slice(0, 5).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("");
     return `<article class="result-card">
-      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
+      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
       <h2><button type="button" data-id="${escapeHtml(r.id)}">${highlight(escapeHtml(r.title), terms)}</button></h2>
       <p class="excerpt">${makeExcerpt(r.body, terms)}</p>
       <div class="tags">${tags}</div>
@@ -215,7 +216,7 @@ function openDetails(id) {
   if (!r) return;
 
   const active = isActive(r);
-  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`;
+  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`;
   els.detailTitle.textContent = r.title;
   els.detailBody.textContent = r.body;
 
@@ -228,13 +229,13 @@ function wireEvents() {
   // Every UI change updates state, rerenders the list and refreshes the URL state.
   els.search.addEventListener("input", e => { state.query = e.target.value; render(); });
   els.year.addEventListener("change", e => { state.year = e.target.value; render(); });
-  els.chapter.addEventListener("change", e => { state.chapter = e.target.value; render(); });
+  els.chapter.addEventListener("change", e => { state.policyArea = e.target.value; render(); });
   els.activeOnly.addEventListener("change", e => { state.activeOnly = e.target.checked; render(); });
 
   els.reset.addEventListener("click", () => {
     state.query = "";
     state.year = "all";
-    state.chapter = "all";
+    state.policyArea = "all";
     state.activeOnly = true;
     populateFilters();
     render();
@@ -268,20 +269,23 @@ function normaliseData(raw) {
    * older generated files working during prototype iteration.
    */
   const resolutions = Array.isArray(raw) ? raw : (raw.resolutions || []);
-  const chapterMap = new Map();
+  const policyAreaMap = new Map();
 
   for (const r of resolutions) {
-    const chapterKey = r.chapter_title || r.local_chapter_title || "Ukendt";
-    const localCode = r.chapter_code || r.local_chapter_code || null;
-    if (!chapterMap.has(chapterKey)) {
-      chapterMap.set(chapterKey, { code: chapterKey, title: chapterKey, localCode });
+    if (!r.policy_area) {
+      console.warn("Resolution is missing policy_area", r);
+      continue;
+    }
+    const policyArea = r.policy_area;
+    if (!policyAreaMap.has(policyArea)) {
+      policyAreaMap.set(policyArea, { code: policyArea, title: policyArea });
     }
   }
 
   return {
     metadata: Array.isArray(raw) ? {} : raw,
     resolutions,
-    chapters: [...chapterMap.values()],
+    policyAreas: [...policyAreaMap.values()],
   };
 }
 

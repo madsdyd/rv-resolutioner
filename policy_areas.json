@@ -1,0 +1,67 @@
+{
+  "areas": {
+    "Aktualitetsresolutioner": {
+      "aliases": [
+        "Aktualitetsresolution",
+        "Aktualitetsresolutioner"
+      ]
+    },
+    "Andet": {
+      "aliases": [
+        "Andet"
+      ]
+    },
+    "Arbejdsmarked, erhvervspolitik og offentlig sektor": {
+      "aliases": [
+        "Arbejdsmarked, erhvervspolitik og offentlig sektor"
+      ]
+    },
+    "Børn, unge og uddannelse": {
+      "aliases": [
+        "Børn, unge og uddannelse"
+      ]
+    },
+    "Demokrati og frihed": {
+      "aliases": [
+        "Demokrati og frihed"
+      ]
+    },
+    "EU og udenrigspolitik": {
+      "aliases": [
+        "EU og udenrigspolitik"
+      ]
+    },
+    "Miljø, klima, trafik og bæredygtighed": {
+      "aliases": [
+        "Miljø, klima, trafik og bæredygtighed",
+        "Miljø, klima og trafik"
+
+      ]
+    },
+    "Retspolitik": {
+      "aliases": [
+        "Retspolitik"
+      ]
+    },
+    "Social- og udlændingepolitik": {
+      "aliases": [
+        "Social- og udlændingepolitik"
+      ]
+    },
+    "Sundhed og etik": {
+      "aliases": [
+        "Sundhed og etik"
+      ]
+    },
+    "Valgudtalelse": {
+      "aliases": [
+        "Valgudtalelse"
+      ]
+    },
+    "Økonomi og skat": {
+      "aliases": [
+        "Økonomi og skat"
+      ]
+    }
+  }
+}

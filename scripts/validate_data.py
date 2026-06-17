@@ -34,6 +34,7 @@ REQUIRED_FIELDS = [
     "valid_from",
     "valid_until",
     "chapter_title",
+    "policy_area",
 ]
 
 
@@ -46,6 +47,42 @@ def load_resolutions(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         return raw.get("resolutions", []), raw
     raise TypeError(f"Unsupported JSON root type: {type(raw).__name__}")
 
+
+
+def load_policy_areas(path: Path) -> dict[str, Any]:
+    """Load policy-area mappings if the file exists."""
+    if not path.exists():
+        return {"areas": {}}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return raw if isinstance(raw, dict) else {"areas": {}}
+
+
+def validate_policy_area_mapping(
+    resolutions: list[dict[str, Any]],
+    policy_areas: dict[str, Any],
+    warnings: list[str],
+) -> None:
+    """Check that source chapter titles can be mapped unambiguously."""
+    areas = policy_areas.get("areas", {})
+    alias_to_canonical: dict[str, str] = {}
+
+    for canonical, config in areas.items():
+        aliases = set(config.get("aliases", []))
+        aliases.add(canonical)
+        for alias in aliases:
+            previous = alias_to_canonical.get(alias)
+            if previous and previous != canonical:
+                warnings.append(
+                    f"policy_areas.json: alias {alias!r} appears under both {previous!r} and {canonical!r}"
+                )
+            alias_to_canonical[alias] = canonical
+
+    for chapter_title in sorted({str(r.get("chapter_title", "")) for r in resolutions if r.get("chapter_title")}):
+        if chapter_title not in alias_to_canonical:
+            warnings.append(
+                f"Unmapped source chapter title {chapter_title!r}. "
+                "Run parse_docx.py with --update-policy-areas to add it as an identity mapping."
+            )
 
 def parse_date(value: str, field: str, record_id: str, warnings: list[str]) -> _dt.date | None:
     """Parse an ISO date and turn parse failures into validation warnings."""
@@ -91,7 +128,7 @@ def build_report(resolutions: list[dict[str, Any]], metadata: dict[str, Any], wa
 
     for record in resolutions:
         year = record.get("year")
-        chapter = record.get("chapter_title") or "<missing chapter>"
+        chapter = record.get("policy_area") or record.get("chapter_title") or "<missing policy area>"
         by_year_chapter[year][chapter] += 1
 
     lines = []
@@ -134,10 +171,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate generated resolutions JSON")
     parser.add_argument("json_file", type=Path, nargs="?", default=Path("public/resolutions.json"))
     parser.add_argument("--report", type=Path, help="Optional path for a text report")
+    parser.add_argument("--policy-areas", type=Path, default=Path("policy_areas.json"), help="Policy-area mapping file")
     args = parser.parse_args()
 
     resolutions, metadata = load_resolutions(args.json_file)
     warnings: list[str] = []
+    policy_areas = load_policy_areas(args.policy_areas)
+    validate_policy_area_mapping(resolutions, policy_areas, warnings)
 
     seen_ids = set()
     for record in resolutions:

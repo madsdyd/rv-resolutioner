@@ -31,6 +31,7 @@ import datetime as _dt
 import json
 import re
 from collections import Counter
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +124,69 @@ def metadata_for_document(path: Path, document_metadata: dict[str, dict[str, Any
 
     return metadata
 
+
+
+def load_policy_areas(path: Path) -> dict[str, Any]:
+    """Load canonical policy-area mappings from policy_areas.json.
+
+    The mapping is deliberately explicit: source chapter titles are mapped to a
+    canonical `policy_area` value through exact aliases. The parser does not use
+    fuzzy matching or guessing, because policy-area harmonisation is an editorial
+    decision rather than a pure text-similarity problem.
+    """
+    if not path.exists():
+        return {"areas": {}}
+
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    areas = raw.get("areas")
+    if not isinstance(areas, dict):
+        raise ValueError("policy_areas.json must contain a top-level 'areas' object")
+    return raw
+
+
+def build_policy_alias_map(policy_areas: dict[str, Any]) -> dict[str, str]:
+    """Return a lookup from source chapter title/alias to canonical policy area."""
+    alias_map: dict[str, str] = {}
+    duplicates: dict[str, list[str]] = {}
+
+    for canonical, config in policy_areas.get("areas", {}).items():
+        aliases = set(config.get("aliases", []))
+        aliases.add(canonical)
+        for alias in aliases:
+            if alias in alias_map and alias_map[alias] != canonical:
+                duplicates.setdefault(alias, [alias_map[alias]]).append(canonical)
+            alias_map[alias] = canonical
+
+    if duplicates:
+        details = "; ".join(f"{alias!r}: {areas}" for alias, areas in sorted(duplicates.items()))
+        raise ValueError(f"Duplicate policy-area aliases in policy_areas.json: {details}")
+
+    return alias_map
+
+
+def canonical_policy_area(chapter_title: str, alias_map: dict[str, str]) -> str:
+    """Map a source chapter title to the canonical policy area used in the UI."""
+    return alias_map.get(chapter_title, chapter_title)
+
+
+def update_policy_areas_file(path: Path, missing_titles: set[str]) -> None:
+    """Add missing source chapter titles as identity mappings.
+
+    This helper intentionally does not try to harmonise new titles. It only makes
+    new titles explicit in policy_areas.json so a human can later decide whether
+    they should remain separate or become aliases of an existing canonical area.
+    """
+    if path.exists():
+        data = load_policy_areas(path)
+    else:
+        data = {"areas": {}}
+
+    areas = data.setdefault("areas", {})
+    for title in sorted(missing_titles):
+        areas.setdefault(title, {"aliases": [title]})
+
+    ordered = {"areas": {key: areas[key] for key in sorted(areas)}}
+    path.write_text(json.dumps(ordered, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 def strip_chapter_code(text: str) -> tuple[str | None, str]:
     """Return local chapter code and title, e.g. 'F Miljø...' -> ('F', 'Miljø...')."""
@@ -248,7 +312,12 @@ def make_keywords(record: dict[str, Any], count: int = 8) -> list[str]:
     return sorted(scores, key=lambda word: (-scores[word], word))[:count]
 
 
-def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def parse_docx(
+    path: Path,
+    document_metadata: dict[str, dict[str, Any]],
+    policy_alias_map: dict[str, str],
+    missing_policy_areas: set[str],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Parse one DOCX source file into resolution records plus diagnostics."""
     items = paragraph_items(path)
     dates = metadata_for_document(path, document_metadata)
@@ -277,6 +346,10 @@ def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tupl
         if current_chapter and is_title_item(item):
             flush_current()
             resolution_code, title = strip_resolution_code(text)
+            policy_area = canonical_policy_area(current_chapter, policy_alias_map)
+            if policy_area == current_chapter and current_chapter not in policy_alias_map:
+                missing_policy_areas.add(current_chapter)
+
             current = {
                 "id": None,
                 "year": year,
@@ -285,6 +358,7 @@ def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tupl
                 "valid_until": dates["valid_until"],
                 "local_chapter_code": current_chapter_code,
                 "local_chapter_title": current_chapter,
+                "policy_area": policy_area,
                 "local_resolution_code": resolution_code,
                 "title": title,
                 "body_parts": [],
@@ -311,6 +385,7 @@ def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tupl
         record["code"] = record["local_resolution_code"] or record["id"].split("-", 1)[1]
         record["chapter_code"] = record["local_chapter_code"]
         record["chapter_title"] = record["local_chapter_title"]
+        record.setdefault("policy_area", record["chapter_title"])
         record["keywords"] = make_keywords(record)
         record["generated_search_terms"] = []
 
@@ -321,6 +396,7 @@ def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tupl
         "word_headings_seen": sum(1 for item in items if item["style"] in ("Heading 1", "Heading 2")),
         "resolution_count": len(records),
         "chapter_counts": dict(Counter(record["local_chapter_title"] for record in records)),
+        "policy_area_counts": dict(Counter(record["policy_area"] for record in records)),
         "first_title": records[0]["title"] if records else None,
         "last_title": records[-1]["title"] if records else None,
         "metadata": {
@@ -362,20 +438,35 @@ def main() -> None:
     parser.add_argument("docx", nargs="+", type=Path, help="DOCX source files to parse")
     parser.add_argument("--out", type=Path, default=Path("public/resolutions.json"), help="Output JSON file")
     parser.add_argument("--years", type=Path, default=Path("years.json"), help="Per-source-document adoption/validity metadata")
+    parser.add_argument("--policy-areas", type=Path, default=Path("policy_areas.json"), help="Canonical policy-area mapping")
+    parser.add_argument("--update-policy-areas", action="store_true", help="Add missing policy areas to policy_areas.json as identity mappings")
     parser.add_argument("--diagnostics", type=Path, default=Path("PARSER_DIAGNOSIS.generated.json"), help="Machine-readable parser diagnostics")
     parser.add_argument("--legacy-array", action="store_true", help="Write the old raw-array format instead of the canonical wrapper")
     args = parser.parse_args()
 
     document_metadata = load_document_metadata(args.years)
+    policy_areas = load_policy_areas(args.policy_areas)
+    policy_alias_map = build_policy_alias_map(policy_areas)
+    missing_policy_areas: set[str] = set()
     all_records = []
     diagnostics = []
 
     for path in args.docx:
-        records, diag = parse_docx(path, document_metadata)
+        records, diag = parse_docx(path, document_metadata, policy_alias_map, missing_policy_areas)
         all_records.extend(records)
         diagnostics.append(diag)
 
     all_records.sort(key=lambda record: (record["year"], record["id"]))
+
+    if missing_policy_areas:
+        if args.update_policy_areas:
+            update_policy_areas_file(args.policy_areas, missing_policy_areas)
+            print(f"Updated {args.policy_areas} with {len(missing_policy_areas)} missing policy area(s).")
+        else:
+            print("WARNING: Unmapped policy area source title(s):", file=sys.stderr)
+            for title in sorted(missing_policy_areas):
+                print(f"- {title}", file=sys.stderr)
+            print("Run again with --update-policy-areas to add them as identity mappings.", file=sys.stderr)
 
     output_data: Any = all_records if args.legacy_array else build_dataset(all_records, diagnostics)
 
