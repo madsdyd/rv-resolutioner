@@ -255,9 +255,9 @@ function render() {
   els.results.innerHTML = results.map(r => {
     const active = isActive(r);
     const tags = [...(r.keywords || [])].slice(0, 5).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("");
-    return `<article class="result-card">
+    return `<article class="result-card" data-id="${escapeHtml(r.id)}" role="button" tabindex="0" aria-label="Vis resolution: ${escapeHtml(r.title)}">
       <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
-      <h2><button type="button" data-id="${escapeHtml(r.id)}">${highlight(escapeHtml(r.title), terms)}</button></h2>
+      <h2 class="result-title">${highlight(escapeHtml(r.title), terms)}</h2>
       <p class="excerpt">${makeExcerpt(r.body, terms)}</p>
       <div class="tags">${tags}</div>
     </article>`;
@@ -295,8 +295,21 @@ function wireEvents() {
   });
 
   els.results.addEventListener("click", e => {
-    const button = e.target.closest("button[data-id]");
-    if (button) openDetails(button.dataset.id);
+    const card = e.target.closest(".result-card[data-id]");
+    if (!card) return;
+
+    // Let users select/copy text from a card without opening the dialog.
+    if (window.getSelection().toString()) return;
+
+    openDetails(card.dataset.id);
+  });
+
+  els.results.addEventListener("keydown", e => {
+    const card = e.target.closest(".result-card[data-id]");
+    if (!card || !["Enter", " "].includes(e.key)) return;
+
+    e.preventDefault();
+    openDetails(card.dataset.id);
   });
 
   els.closeDialog.addEventListener("click", () => els.dialog.close());

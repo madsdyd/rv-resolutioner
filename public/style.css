@@ -141,18 +141,21 @@ button:hover { filter: brightness(.96); }
   padding: 1rem;
   display: grid;
   gap: .6rem;
+  cursor: pointer;
+}
+.result-card:hover .result-title { color: var(--rv-magenta); }
+.result-card:focus-visible {
+  outline: 3px solid rgba(229,0,126,.28);
+  outline-offset: 3px;
 }
 .result-card h2 {
   margin: 0;
   font-size: 1.1rem;
 }
-.result-card h2 button {
-  all: unset;
-  cursor: pointer;
+.result-title {
   font-weight: 810;
   line-height: 1.25;
 }
-.result-card h2 button:hover { color: var(--rv-magenta); }
 .meta { color: var(--muted); font-size: .9rem; margin: 0; }
 .excerpt { margin: 0; color: #282828; line-height: 1.48; }
 mark { background: #ffe066; padding: 0 .08em; border-radius: .2em; }
