@@ -112,6 +112,21 @@ function expiresThisYear(resolution, today = new Date()) {
   return until.getFullYear() === today.getFullYear();
 }
 
+
+function statusBadges(resolution, today = new Date()) {
+  const active = isActive(resolution, today);
+  const expiresInCurrentYear = expiresThisYear(resolution, today);
+  const badges = [
+    `<span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`,
+  ];
+
+  if (expiresInCurrentYear) {
+    badges.push(`<span class="expires-this-year">${active ? "udløber i år" : "udløb i år"}</span>`);
+  }
+
+  return badges.join(" · ");
+}
+
 function matchesStatus(resolution, status, today = new Date()) {
   switch (status) {
     case "all":
@@ -260,10 +275,9 @@ function render() {
   }
 
   els.results.innerHTML = results.map(r => {
-    const active = isActive(r);
     const tags = [...(r.keywords || [])].slice(0, 5).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("");
     return `<article class="result-card" data-id="${escapeAttribute(r.id)}" role="button" tabindex="0" aria-label="Vis resolution: ${escapeAttribute(r.title)}">
-      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
+      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · ${statusBadges(r)}</p>
       <h2 class="result-title">${highlight(escapeHtml(r.title), terms)}</h2>
       <p class="excerpt">${makeExcerpt(r.body, terms)}</p>
       <div class="tags">${tags}</div>
@@ -275,8 +289,7 @@ function openDetails(id) {
   const r = state.data.resolutions.find(item => item.id === id);
   if (!r) return;
 
-  const active = isActive(r);
-  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`;
+  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · ${statusBadges(r)}`;
   els.detailTitle.textContent = r.title;
   els.detailBody.textContent = r.body;
 

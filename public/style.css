@@ -170,6 +170,7 @@ mark { background: #ffe066; padding: 0 .08em; border-radius: .2em; }
 }
 .valid { color: var(--rv-green); font-weight: 760; }
 .expired { color: #8b3b00; font-weight: 760; }
+.expires-this-year { color: var(--rv-magenta); font-weight: 760; }
 
 .empty {
   padding: 2rem;
