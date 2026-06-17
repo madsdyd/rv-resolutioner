@@ -86,7 +86,12 @@ function searchTermIndex(normalisedText, term) {
 
 function escapeHtml(text) {
   // Avoid accidental HTML injection when rendering source text and titles.
-  return (text || "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+  return String(text ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}
+
+function escapeAttribute(text) {
+  // Attribute values are double-quoted, but escaping apostrophes too is safer.
+  return escapeHtml(text).replace(/'/g, "&#39;");
 }
 
 function validityDates(resolution) {
@@ -213,7 +218,9 @@ function updateUrl() {
 
 function populateFilters() {
   const years = [...new Set(state.data.resolutions.map(r => r.year))].sort((a, b) => b - a);
-  els.year.innerHTML = `<option value="all">Alle år</option>` + years.map(y => `<option value="${y}">${y}</option>`).join("");
+  els.year.innerHTML = `<option value="all">Alle år</option>` + years
+    .map(y => `<option value="${escapeAttribute(y)}">${escapeHtml(y)}</option>`)
+    .join("");
 
   // Policy areas are derived from canonical policy_area values, not the source
   // chapter titles. This keeps the UI stable even when chapter wording differs
@@ -255,8 +262,8 @@ function render() {
   els.results.innerHTML = results.map(r => {
     const active = isActive(r);
     const tags = [...(r.keywords || [])].slice(0, 5).map(k => `<span class="tag">${escapeHtml(k)}</span>`).join("");
-    return `<article class="result-card" data-id="${escapeHtml(r.id)}" role="button" tabindex="0" aria-label="Vis resolution: ${escapeHtml(r.title)}">
-      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
+    return `<article class="result-card" data-id="${escapeAttribute(r.id)}" role="button" tabindex="0" aria-label="Vis resolution: ${escapeAttribute(r.title)}">
+      <p class="meta">${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span></p>
       <h2 class="result-title">${highlight(escapeHtml(r.title), terms)}</h2>
       <p class="excerpt">${makeExcerpt(r.body, terms)}</p>
       <div class="tags">${tags}</div>
@@ -269,7 +276,7 @@ function openDetails(id) {
   if (!r) return;
 
   const active = isActive(r);
-  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${r.valid_from}–${r.valid_until} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`;
+  els.detailMeta.innerHTML = `${escapeHtml(r.code)} · ${escapeHtml(r.policy_area || r.chapter_title)} · ${escapeHtml(r.valid_from)}–${escapeHtml(r.valid_until)} · <span class="${active ? "valid" : "expired"}">${active ? "gældende" : "ikke gældende"}</span>`;
   els.detailTitle.textContent = r.title;
   els.detailBody.textContent = r.body;
 
