@@ -31,10 +31,15 @@
         <select id="chapter"></select>
       </div>
 
-      <label class="checkbox">
-        <input id="activeOnly" type="checkbox" checked />
-        Kun gældende i dag
-      </label>
+      <div class="filter-row">
+        <label for="status">Status</label>
+        <select id="status">
+          <option value="current">Gældende i dag</option>
+          <option value="all">Alle</option>
+          <option value="expires-this-year">Udløber i år</option>
+          <option value="expired">Ikke længere gældende</option>
+        </select>
+      </div>
 
       <button id="reset" type="button">Nulstil filtre</button>
 

@@ -21,7 +21,7 @@ const state = {
   query: "",
   year: "all",
   policyArea: "all",
-  activeOnly: true,
+  status: "current",
 };
 
 // Centralised DOM references make the rest of the code easier to scan.
@@ -29,7 +29,7 @@ const els = {
   search: document.querySelector("#search"),
   year: document.querySelector("#year"),
   chapter: document.querySelector("#chapter"),
-  activeOnly: document.querySelector("#activeOnly"),
+  status: document.querySelector("#status"),
   reset: document.querySelector("#reset"),
   summary: document.querySelector("#summary"),
   results: document.querySelector("#results"),
@@ -67,11 +67,37 @@ function escapeHtml(text) {
   return (text || "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 }
 
-function isActive(resolution, today = new Date()) {
+function validityDates(resolution) {
   // The prototype treats validity as date-based only, matching the yearly import workflow.
-  const from = new Date(`${resolution.valid_from}T00:00:00`);
-  const until = new Date(`${resolution.valid_until}T23:59:59`);
+  return {
+    from: new Date(`${resolution.valid_from}T00:00:00`),
+    until: new Date(`${resolution.valid_until}T23:59:59`),
+  };
+}
+
+function isActive(resolution, today = new Date()) {
+  const { from, until } = validityDates(resolution);
   return from <= today && today <= until;
+}
+
+function expiresThisYear(resolution, today = new Date()) {
+  const { until } = validityDates(resolution);
+  return until.getFullYear() === today.getFullYear();
+}
+
+function matchesStatus(resolution, status, today = new Date()) {
+  switch (status) {
+    case "all":
+      return true;
+    case "current":
+      return isActive(resolution, today);
+    case "expired":
+      return validityDates(resolution).until < today;
+    case "expires-this-year":
+      return expiresThisYear(resolution, today);
+    default:
+      return isActive(resolution, today);
+  }
 }
 
 function scoreResolution(r, terms) {
@@ -146,7 +172,8 @@ function applyUrlParams() {
   state.query = params.get("q") || "";
   state.year = params.get("year") || "all";
   state.policyArea = params.get("policy_area") || params.get("chapter") || "all";
-  state.activeOnly = params.get("active") !== "0";
+
+  state.status = params.get("status") || "current";
 }
 
 function updateUrl() {
@@ -154,7 +181,7 @@ function updateUrl() {
   if (state.query) params.set("q", state.query);
   if (state.year !== "all") params.set("year", state.year);
   if (state.policyArea !== "all") params.set("policy_area", state.policyArea);
-  if (!state.activeOnly) params.set("active", "0");
+  if (state.status !== "current") params.set("status", state.status);
   history.replaceState(null, "", `${location.pathname}${params.toString() ? "?" + params.toString() : ""}`);
 }
 
@@ -172,7 +199,7 @@ function populateFilters() {
   els.search.value = state.query;
   els.year.value = state.year;
   els.chapter.value = state.policyArea;
-  els.activeOnly.checked = state.activeOnly;
+  els.status.value = state.status;
 }
 
 function filteredResults() {
@@ -181,8 +208,8 @@ function filteredResults() {
     .map(r => ({ r, score: scoreResolution(r, terms) }))
     .filter(x => x.score > 0)
     .filter(x => state.year === "all" || String(x.r.year) === state.year)
-    .filter(x => state.policyArea === "all" || (x.r.policy_area || x.r.chapter_title) === state.policyArea)
-    .filter(x => !state.activeOnly || isActive(x.r))
+    .filter(x => state.policyArea === "all" || x.r.policy_area === state.policyArea)
+    .filter(x => matchesStatus(x.r, state.status))
     .sort((a, b) => b.score - a.score || a.r.year - b.r.year || collator.compare(a.r.code, b.r.code))
     .map(x => x.r);
 }
@@ -230,13 +257,13 @@ function wireEvents() {
   els.search.addEventListener("input", e => { state.query = e.target.value; render(); });
   els.year.addEventListener("change", e => { state.year = e.target.value; render(); });
   els.chapter.addEventListener("change", e => { state.policyArea = e.target.value; render(); });
-  els.activeOnly.addEventListener("change", e => { state.activeOnly = e.target.checked; render(); });
+  els.status.addEventListener("change", e => { state.status = e.target.value; render(); });
 
   els.reset.addEventListener("click", () => {
     state.query = "";
     state.year = "all";
     state.policyArea = "all";
-    state.activeOnly = true;
+    state.status = "current";
     populateFilters();
     render();
   });
