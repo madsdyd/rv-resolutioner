@@ -2,8 +2,8 @@
   "2023": {
     "adopted_date": "2023-09-17",
     "valid_from": "2023-09-17",
-    "valid_until": "2025-09-17",
-    "note": "Date found in the 2023 document title. VALID_UNTIL MUST BE CHANGED. SET LOW DUE TO TEST"
+    "valid_until": "2026-09-17",
+    "note": "Date found in the 2023 document title."
   },
   "2024": {
     "adopted_date": "2024-09-15",
