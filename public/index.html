@@ -19,7 +19,27 @@
   <main class="layout">
     <aside class="panel filters" aria-label="Filtre">
       <label for="search">Søg</label>
-      <input id="search" type="search" placeholder="Fx open source, Gaza, tandlæge…" autocomplete="off" />
+      <input
+        id="search"
+        type="search"
+        list="searchSuggestions"
+        placeholder="Søg efter klima, uddannelse, demokrati, sundhed, EU …"
+        autocomplete="off"
+      />
+      <datalist id="searchSuggestions">
+        <option value="klima"></option>
+        <option value="uddannelse"></option>
+        <option value="demokrati"></option>
+        <option value="sundhed"></option>
+        <option value="EU"></option>
+        <option value="børn"></option>
+        <option value="unge"></option>
+        <option value="arbejdsmarked"></option>
+        <option value="integration"></option>
+        <option value="natur"></option>
+        <option value="trafik"></option>
+        <option value="økonomi"></option>
+      </datalist>
 
       <div class="filter-row">
         <label for="year">År</label>
