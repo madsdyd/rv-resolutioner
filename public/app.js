@@ -61,7 +61,7 @@ function normalise(text) {
 }
 
 function isShortSearchTerm(term) {
-  // Very short terms such as "ål" should not match inside unrelated words.
+  // Very short terms should match word prefixes, not unrelated substrings.
   return term.length <= 2;
 }
 
@@ -71,7 +71,17 @@ function searchTokens(text) {
 
 function containsSearchTerm(normalisedText, term) {
   if (!isShortSearchTerm(term)) return normalisedText.includes(term);
-  return searchTokens(normalisedText).includes(term);
+  return searchTokens(normalisedText).some(token => token.startsWith(term));
+}
+
+function searchTermIndex(normalisedText, term) {
+  if (!term) return -1;
+  if (!isShortSearchTerm(term)) return normalisedText.indexOf(term);
+
+  const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`(^|[^\\p{L}\\p{N}])(${safe})`, "u").exec(normalisedText);
+  if (!match) return -1;
+  return match.index + match[1].length;
 }
 
 function escapeHtml(text) {
@@ -151,8 +161,7 @@ function makeExcerpt(text, terms, maxLen = 260) {
   const n = normalise(plain);
   let idx = -1;
   for (const term of terms) {
-    if (isShortSearchTerm(term) && !containsSearchTerm(n, term)) continue;
-    idx = n.indexOf(term);
+    idx = searchTermIndex(n, term);
     if (idx >= 0) break;
   }
 
@@ -171,7 +180,7 @@ function highlight(html, terms) {
   for (const term of unique) {
     const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (isShortSearchTerm(term)) {
-      out = out.replace(new RegExp(`(^|[^\\p{L}\\p{N}])(${safe})(?=$|[^\\p{L}\\p{N}])`, "giu"), "$1<mark>$2</mark>");
+      out = out.replace(new RegExp(`(^|[^\\p{L}\\p{N}])(${safe})`, "giu"), "$1<mark>$2</mark>");
     } else {
       out = out.replace(new RegExp(`(${safe})`, "giu"), "<mark>$1</mark>");
     }
