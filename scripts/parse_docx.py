@@ -87,40 +87,41 @@ def split_para_text(text: str) -> list[str]:
     return parts
 
 
-def year_from_filename(path: Path) -> int | None:
-    """Infer the resolution year from a filename containing a 20xx year."""
-    match = re.search(r"(20\d{2})", path.name)
-    return int(match.group(1)) if match else None
+def load_document_metadata(path: Path) -> dict[str, dict[str, Any]]:
+    """Load required per-source-document metadata from years.json.
 
-
-def default_validity_dates(year: int) -> dict[str, str]:
-    """Fallback validity dates used only when the year is missing in years.json."""
-    valid_from = f"{year}-09-01"
-    start = _dt.date.fromisoformat(valid_from)
-    return {
-        "adopted_date": valid_from,
-        "valid_from": valid_from,
-        "valid_until": start.replace(year=start.year + 5).isoformat(),
-    }
-
-
-def load_year_metadata(path: Path | None) -> dict[int, dict[str, Any]]:
-    """Load per-year adoption and validity metadata from a small JSON file."""
-    if path is None:
-        return {}
-
+    The keys in years.json are exact DOCX filenames, for example
+    "Vedtagne resolutioner 2025.docx". This is intentionally stricter than
+    inferring dates from a year in the filename: validity periods are political
+    decisions and should be explicit, reviewable project data.
+    """
     raw = json.loads(path.read_text(encoding="utf-8"))
-    metadata: dict[int, dict[str, Any]] = {}
-    for year_text, entry in raw.items():
-        metadata[int(year_text)] = entry
+    documents = raw.get("documents")
+    if not isinstance(documents, dict):
+        raise ValueError("years.json must contain a top-level 'documents' object")
+    return documents
+
+
+def metadata_for_document(path: Path, document_metadata: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Return explicit metadata for one DOCX file or fail with a useful error."""
+    source_name = path.name
+    metadata = document_metadata.get(source_name)
+    if metadata is None:
+        known = ", ".join(sorted(document_metadata)) or "<none>"
+        raise ValueError(
+            f"Missing years.json metadata for source document: {source_name}. "
+            f"Known documents: {known}"
+        )
+
+    required = ["year", "adopted_date", "valid_from", "valid_until"]
+    missing = [field for field in required if field not in metadata]
+    if missing:
+        raise ValueError(
+            f"Incomplete years.json metadata for source document: {source_name}. "
+            f"Missing fields: {', '.join(missing)}"
+        )
+
     return metadata
-
-
-def metadata_for_year(year: int, year_metadata: dict[int, dict[str, Any]]) -> dict[str, Any]:
-    """Return explicit year metadata, or a visible fallback if absent."""
-    defaults = default_validity_dates(year)
-    explicit = year_metadata.get(year, {})
-    return {**defaults, **explicit}
 
 
 def strip_chapter_code(text: str) -> tuple[str | None, str]:
@@ -247,14 +248,11 @@ def make_keywords(record: dict[str, Any], count: int = 8) -> list[str]:
     return sorted(scores, key=lambda word: (-scores[word], word))[:count]
 
 
-def parse_docx(path: Path, year_metadata: dict[int, dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def parse_docx(path: Path, document_metadata: dict[str, dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Parse one DOCX source file into resolution records plus diagnostics."""
     items = paragraph_items(path)
-    year = year_from_filename(path)
-    if not year:
-        raise ValueError(f"Could not infer year from filename: {path.name}")
-
-    dates = metadata_for_year(year, year_metadata)
+    dates = metadata_for_document(path, document_metadata)
+    year = int(dates["year"])
     records = []
     current_chapter = None
     current_chapter_code = None
@@ -325,19 +323,24 @@ def parse_docx(path: Path, year_metadata: dict[int, dict[str, Any]]) -> tuple[li
         "chapter_counts": dict(Counter(record["local_chapter_title"] for record in records)),
         "first_title": records[0]["title"] if records else None,
         "last_title": records[-1]["title"] if records else None,
+        "metadata": {
+            "adopted_date": dates["adopted_date"],
+            "valid_from": dates["valid_from"],
+            "valid_until": dates["valid_until"],
+            "note": dates.get("note", ""),
+        },
     }
 
     return records, diagnostics
 
 
-def build_dataset(records: list[dict[str, Any]], diagnostics: list[dict[str, Any]], year_metadata: dict[int, dict[str, Any]]) -> dict[str, Any]:
+def build_dataset(records: list[dict[str, Any]], diagnostics: list[dict[str, Any]]) -> dict[str, Any]:
     """Wrap resolution records in a self-describing dataset object."""
     source_documents = []
     for diag in diagnostics:
-        year = diag["year"]
-        dates = metadata_for_year(year, year_metadata)
+        dates = diag["metadata"]
         source_documents.append({
-            "year": year,
+            "year": diag["year"],
             "filename": diag["file"],
             "adopted_date": dates["adopted_date"],
             "valid_from": dates["valid_from"],
@@ -358,23 +361,23 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Parse DOCX resolution documents into public/resolutions.json")
     parser.add_argument("docx", nargs="+", type=Path, help="DOCX source files to parse")
     parser.add_argument("--out", type=Path, default=Path("public/resolutions.json"), help="Output JSON file")
-    parser.add_argument("--years", type=Path, default=Path("years.json"), help="Per-year adoption/validity metadata")
+    parser.add_argument("--years", type=Path, default=Path("years.json"), help="Per-source-document adoption/validity metadata")
     parser.add_argument("--diagnostics", type=Path, default=Path("PARSER_DIAGNOSIS.generated.json"), help="Machine-readable parser diagnostics")
     parser.add_argument("--legacy-array", action="store_true", help="Write the old raw-array format instead of the canonical wrapper")
     args = parser.parse_args()
 
-    year_metadata = load_year_metadata(args.years if args.years.exists() else None)
+    document_metadata = load_document_metadata(args.years)
     all_records = []
     diagnostics = []
 
     for path in args.docx:
-        records, diag = parse_docx(path, year_metadata)
+        records, diag = parse_docx(path, document_metadata)
         all_records.extend(records)
         diagnostics.append(diag)
 
     all_records.sort(key=lambda record: (record["year"], record["id"]))
 
-    output_data: Any = all_records if args.legacy_array else build_dataset(all_records, diagnostics, year_metadata)
+    output_data: Any = all_records if args.legacy_array else build_dataset(all_records, diagnostics)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(output_data, ensure_ascii=False, indent=2), encoding="utf-8")

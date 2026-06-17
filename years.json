@@ -1,20 +1,39 @@
 {
-  "2023": {
-    "adopted_date": "2023-09-17",
-    "valid_from": "2023-09-17",
-    "valid_until": "2026-09-17",
-    "note": "Date found in the 2023 document title."
-  },
-  "2024": {
-    "adopted_date": "2024-09-15",
-    "valid_from": "2024-09-15",
-    "valid_until": "2029-09-15",
-    "note": "Date added manually by the project owner."
-  },
-  "2025": {
-    "adopted_date": "2025-09-21",
-    "valid_from": "2025-09-21",
-    "valid_until": "2030-09-21",
-    "note": "Date supplied by the project owner."
+  "documents": {
+    "Vedtagne resolutioner 2021.docx": {
+      "year": 2021,
+      "adopted_date": "2021-09-19",
+      "valid_from": "2021-09-19",
+      "valid_until": "2024-09-19",
+      "note": "Date supplied by the project owner."
+    },
+    "Vedtagne resolutioner 2022.docx": {
+      "year": 2022,
+      "adopted_date": "2022-09-18",
+      "valid_from": "2022-09-18",
+      "valid_until": "2025-09-18",
+      "note": "Date supplied by the project owner."
+    },
+    "Vedtagne resolutioner 2023.docx": {
+      "year": 2023,
+      "adopted_date": "2023-09-17",
+      "valid_from": "2023-09-17",
+      "valid_until": "2026-09-17",
+      "note": "Date found in the 2023 document title."
+    },
+    "Vedtagne resolutioner 2024.docx": {
+      "year": 2024,
+      "adopted_date": "2024-09-15",
+      "valid_from": "2024-09-15",
+      "valid_until": "2029-09-15",
+      "note": "Date added manually by the project owner."
+    },
+    "Vedtagne resolutioner 2025.docx": {
+      "year": 2025,
+      "adopted_date": "2025-09-21",
+      "valid_from": "2025-09-21",
+      "valid_until": "2030-09-21",
+      "note": "Date supplied by the project owner."
+    }
   }
 }
