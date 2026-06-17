@@ -54,12 +54,24 @@ function normalise(text) {
    * replace scoreResolution() with FlexSearch/Lunr without changing the data.
    */
   return (text || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("da-DK")
     .replace(/[^a-zæøå0-9\s-]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isShortSearchTerm(term) {
+  // Very short terms such as "ål" should not match inside unrelated words.
+  return term.length <= 2;
+}
+
+function searchTokens(text) {
+  return normalise(text).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+}
+
+function containsSearchTerm(normalisedText, term) {
+  if (!isShortSearchTerm(term)) return normalisedText.includes(term);
+  return searchTokens(normalisedText).includes(term);
 }
 
 function escapeHtml(text) {
@@ -115,18 +127,18 @@ function scoreResolution(r, terms) {
   const title = normalise(r.title);
   const body = normalise(r.body);
   const code = normalise(r.code);
-  const policyArea = r.policy_area || r.chapter_title || r.local_chapter_title || "Ukendt";
+  const policyArea = normalise(r.policy_area || r.chapter_title || r.local_chapter_title || "Ukendt");
   const keywords = normalise([...(r.keywords || []), ...(r.generated_search_terms || [])].join(" "));
-  const blob = `${code} ${title} ${policyArea} ${body} ${keywords}`;
+  const fields = [code, title, policyArea, body, keywords];
 
   let score = 0;
   for (const term of terms) {
-    if (!blob.includes(term)) return 0;
+    if (!fields.some(field => containsSearchTerm(field, term))) return 0;
     if (code === term) score += 60;
-    if (title.includes(term)) score += 25;
-    if (keywords.includes(term)) score += 14;
-    if (policyArea.includes(term)) score += 8;
-    if (body.includes(term)) score += 4;
+    if (containsSearchTerm(title, term)) score += 25;
+    if (containsSearchTerm(keywords, term)) score += 14;
+    if (containsSearchTerm(policyArea, term)) score += 8;
+    if (containsSearchTerm(body, term)) score += 4;
   }
   return score;
 }
@@ -139,6 +151,7 @@ function makeExcerpt(text, terms, maxLen = 260) {
   const n = normalise(plain);
   let idx = -1;
   for (const term of terms) {
+    if (isShortSearchTerm(term) && !containsSearchTerm(n, term)) continue;
     idx = n.indexOf(term);
     if (idx >= 0) break;
   }
@@ -157,7 +170,11 @@ function highlight(html, terms) {
   let out = html;
   for (const term of unique) {
     const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    out = out.replace(new RegExp(`(${safe})`, "giu"), "<mark>$1</mark>");
+    if (isShortSearchTerm(term)) {
+      out = out.replace(new RegExp(`(^|[^\\p{L}\\p{N}])(${safe})(?=$|[^\\p{L}\\p{N}])`, "giu"), "$1<mark>$2</mark>");
+    } else {
+      out = out.replace(new RegExp(`(${safe})`, "giu"), "<mark>$1</mark>");
+    }
   }
   return out;
 }
