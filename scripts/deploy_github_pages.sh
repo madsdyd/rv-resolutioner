@@ -28,6 +28,7 @@ REMOTE_NAME="${REMOTE_NAME:-github-origin}"
 PUBLIC_DIR="${PUBLIC_DIR:-public}"
 WORKTREE_DIR="${WORKTREE_DIR:-.worktree-github-pages}"
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-Deploy static site to GitHub Pages}"
+PAGES_URL="${PAGES_URL:-}"
 
 log() {
   printf '[deploy-github] %s\n' "$*"
@@ -44,6 +45,48 @@ require_command() {
 
 repo_root() {
   git rev-parse --show-toplevel 2>/dev/null
+}
+
+
+github_pages_url() {
+  if [ -n "$PAGES_URL" ]; then
+    printf '%s\n' "$PAGES_URL"
+    return
+  fi
+
+  local remote_url owner repo path
+  remote_url="$(git remote get-url "$REMOTE_NAME")"
+
+  case "$remote_url" in
+    https://github.com/*)
+      path="${remote_url#https://github.com/}"
+      ;;
+    git@github.com:*)
+      path="${remote_url#git@github.com:}"
+      ;;
+    ssh://git@github.com/*)
+      path="${remote_url#ssh://git@github.com/}"
+      ;;
+    *)
+      printf 'unknown; set PAGES_URL to print the published URL\n'
+      return
+      ;;
+  esac
+
+  path="${path%.git}"
+  owner="${path%%/*}"
+  repo="${path#*/}"
+
+  if [ -z "$owner" ] || [ -z "$repo" ] || [ "$owner" = "$repo" ]; then
+    printf 'unknown; set PAGES_URL to print the published URL\n'
+    return
+  fi
+
+  if [ "$repo" = "${owner}.github.io" ]; then
+    printf 'https://%s.github.io/\n' "$owner"
+  else
+    printf 'https://%s.github.io/%s/\n' "$owner" "$repo"
+  fi
 }
 
 ensure_clean_worktree() {
@@ -156,6 +199,7 @@ main() {
   commit_and_push
 
   log "Done. GitHub Pages should update shortly."
+  log "GitHub Pages URL: $(github_pages_url)"
 }
 
 main "$@"
