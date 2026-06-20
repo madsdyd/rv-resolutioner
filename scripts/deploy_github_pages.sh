@@ -113,11 +113,13 @@ rebuild_public_data() {
 }
 
 remove_stale_worktree() {
-  # Clean up registrations for worktrees that were deleted manually.
+  # Clean up registrations for worktrees that were deleted manually, and
+  # remove any leftover worktree directory from a previous interrupted deploy.
   git worktree prune
 
   if [ -e "$WORKTREE_DIR" ]; then
-    fail "Worktree directory already exists: ${WORKTREE_DIR}. Remove it or set WORKTREE_DIR."
+    log "Removing existing worktree directory: ${WORKTREE_DIR}"
+    git worktree remove "$WORKTREE_DIR" --force >/dev/null 2>&1 || rm -rf "$WORKTREE_DIR"
   fi
 }
 
