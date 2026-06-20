@@ -134,6 +134,7 @@ button:hover { filter: brightness(.96); }
   margin-bottom: 1rem;
 }
 .summary { color: var(--muted); margin: 0; }
+.mobile-search-feedback { display: none; }
 .results { display: grid; gap: .85rem; }
 
 /* Individual result cards in the search result list. */
@@ -206,13 +207,44 @@ dialog::backdrop { background: rgba(0,0,0,.42); }
 /* Single-column layout on phones and narrow windows. */
 @media (max-width: 760px) {
   /* Header: party mark, page title and short explanatory text. */
-.site-header { align-items: flex-start; }
+  .site-header { align-items: flex-start; }
   .brand-mark { width: 3.2rem; height: 3.2rem; font-size: 1.7rem; border-radius: .95rem; }
-  /* Main two-column layout: sticky filters on the left, results on the right. */
-.layout { grid-template-columns: 1fr; }
-  /* Filter panel stays visible on larger screens while users scroll results. */
-.filters { position: static; }
-  /* Result toolbar: count summary and shareable-link button. */
-.toolbar { align-items: stretch; flex-direction: column; }
-  #copyLink { width: 100%; }
+
+  /* Main two-column layout: filters first, results below. */
+  .layout { grid-template-columns: 1fr; }
+  .filters { position: static; padding: .9rem; }
+
+  label { margin: .25rem 0 .25rem; }
+  input[type="search"], select { padding: .72rem .85rem; }
+  .filter-row { margin-top: .65rem; }
+
+  /* Keep live result feedback close to the search field while the keyboard is open. */
+  .mobile-search-feedback {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-top: .75rem;
+  }
+  .mobile-search-feedback .summary { font-size: .95rem; }
+  #copyLinkMobile {
+    flex: 0 0 auto;
+    padding: .45rem .75rem;
+    background: transparent;
+    color: var(--rv-magenta);
+    border: 1px solid rgba(229,0,126,.35);
+  }
+
+  /* These desktop helpers take too much space before results on mobile. */
+  .hint { display: none; }
+  .content > .toolbar { display: none; }
+
+  #reset {
+    width: auto;
+    margin-top: .75rem;
+    padding: .45rem .75rem;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
 }
