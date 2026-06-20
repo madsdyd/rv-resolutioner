@@ -79,18 +79,15 @@ rebuild_public_data() {
 }
 
 prepare_worktree() {
-  # If a previous deploy was interrupted, or if the worktree directory was
-  # deleted manually, Git may still have a stale worktree registration. Clean up
-  # those stale registrations before trying to create the temporary worktree.
+  # Git keeps separate metadata for worktrees. If a previous deploy was
+  # interrupted, or if the worktree directory was removed manually, Git may
+  # still have a stale registration. Prune first, then remove any leftover
+  # directory/worktree before creating a fresh one.
   git worktree prune
 
   if [ -e "$WORKTREE_DIR" ]; then
-    fail "Worktree directory already exists: ${WORKTREE_DIR}. Remove it or set WORKTREE_DIR."
-  fi
-
-  if git worktree list --porcelain | grep -Fxq "worktree ${root}/${WORKTREE_DIR}"; then
-    log "Removing stale worktree registration for ${WORKTREE_DIR}"
-    git worktree remove "$WORKTREE_DIR" --force >/dev/null 2>&1 || git worktree prune
+    log "Removing existing worktree directory: ${WORKTREE_DIR}"
+    git worktree remove "$WORKTREE_DIR" --force >/dev/null 2>&1 || rm -rf "$WORKTREE_DIR"
   fi
 
   log "Creating temporary worktree for branch ${PAGES_BRANCH}"
