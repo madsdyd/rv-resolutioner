@@ -327,6 +327,14 @@ function wireEvents() {
   }
 
   els.search.addEventListener("input", e => { state.query = e.target.value; render(); });
+  els.search.addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !shouldDisableNativeSearchSuggestions()) return;
+
+    // On touch/mobile browsers the Enter/Search key should dismiss the keyboard.
+    // Search results are already updated live as the user types.
+    e.preventDefault();
+    els.search.blur();
+  });
   els.year.addEventListener("change", e => { state.year = e.target.value; render(); });
   els.chapter.addEventListener("change", e => { state.policyArea = e.target.value; render(); });
   els.status.addEventListener("change", e => { state.status = e.target.value; render(); });
