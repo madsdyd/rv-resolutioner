@@ -32,8 +32,10 @@ const els = {
   status: document.querySelector("#status"),
   reset: document.querySelector("#reset"),
   summary: document.querySelector("#summary"),
+  summaryMobile: document.querySelector("#summaryMobile"),
   results: document.querySelector("#results"),
   copyLink: document.querySelector("#copyLink"),
+  copyLinkMobile: document.querySelector("#copyLinkMobile"),
   dialog: document.querySelector("#detailsDialog"),
   closeDialog: document.querySelector("#closeDialog"),
   detailMeta: document.querySelector("#detailMeta"),
@@ -44,6 +46,22 @@ const els = {
 
 // Danish collation gives more natural sorting of æ/ø/å in policy areas/titles.
 const collator = new Intl.Collator("da", { sensitivity: "base" });
+const searchSuggestionsMedia = window.matchMedia("(max-width: 768px), (pointer: coarse)");
+const searchSuggestionsListId = "searchSuggestions";
+
+function shouldDisableNativeSearchSuggestions() {
+  // Native datalist suggestions behave inconsistently on touch/mobile browsers.
+  // Treat them as a desktop enhancement, not a core search feature.
+  return searchSuggestionsMedia.matches;
+}
+
+function configureSearchSuggestions() {
+  if (shouldDisableNativeSearchSuggestions()) {
+    els.search.removeAttribute("list");
+  } else {
+    els.search.setAttribute("list", searchSuggestionsListId);
+  }
+}
 
 function normalise(text) {
   /*
@@ -267,7 +285,9 @@ function render() {
   const terms = termsFromQuery(state.query);
   const results = filteredResults();
   const total = state.data.resolutions.length;
-  els.summary.textContent = `${results.length} af ${total} resolutioner vises`;
+  const summaryText = `${results.length} af ${total} resolutioner vises`;
+  els.summary.textContent = summaryText;
+  els.summaryMobile.textContent = summaryText;
 
   if (results.length === 0) {
     els.results.innerHTML = `<div class="empty">Ingen resolutioner matcher filtrene.</div>`;
@@ -300,6 +320,12 @@ function openDetails(id) {
 
 function wireEvents() {
   // Every UI change updates state, rerenders the list and refreshes the URL state.
+  if (searchSuggestionsMedia.addEventListener) {
+    searchSuggestionsMedia.addEventListener("change", configureSearchSuggestions);
+  } else {
+    searchSuggestionsMedia.addListener(configureSearchSuggestions);
+  }
+
   els.search.addEventListener("input", e => { state.query = e.target.value; render(); });
   els.year.addEventListener("change", e => { state.year = e.target.value; render(); });
   els.chapter.addEventListener("change", e => { state.policyArea = e.target.value; render(); });
@@ -334,16 +360,31 @@ function wireEvents() {
 
   els.closeDialog.addEventListener("click", () => els.dialog.close());
 
-  els.copyLink.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(location.href);
-      els.copyLink.textContent = "Link kopieret";
-      setTimeout(() => els.copyLink.textContent = "Kopiér link", 1400);
-    } catch {
-      els.copyLink.textContent = "Kunne ikke kopiere";
-      setTimeout(() => els.copyLink.textContent = "Kopiér link", 1400);
+  els.copyLink.addEventListener("click", () => shareCurrentLink(els.copyLink, "Kopiér link"));
+  els.copyLinkMobile.addEventListener("click", () => shareCurrentLink(els.copyLinkMobile, "Del link"));
+}
+
+
+async function shareCurrentLink(button, defaultText) {
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: document.title,
+        url: location.href,
+      });
+      return;
     }
-  });
+
+    await navigator.clipboard.writeText(location.href);
+    button.textContent = "Link kopieret";
+    setTimeout(() => button.textContent = defaultText, 1400);
+  } catch (err) {
+    // AbortError is the normal result when the native share dialog is cancelled.
+    if (err && err.name === "AbortError") return;
+
+    button.textContent = "Kunne ikke dele";
+    setTimeout(() => button.textContent = defaultText, 1400);
+  }
 }
 
 function normaliseData(raw) {
@@ -381,6 +422,7 @@ async function init() {
   const raw = await response.json();
   state.data = normaliseData(raw);
   populateFilters();
+  configureSearchSuggestions();
   wireEvents();
   render();
 }
@@ -388,4 +430,5 @@ async function init() {
 init().catch(err => {
   console.error(err);
   els.summary.textContent = "Kunne ikke indlæse data.";
+  els.summaryMobile.textContent = "Kunne ikke indlæse data.";
 });

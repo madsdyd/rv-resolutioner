@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-18T11:27:39.181810+00:00",
+  "generated_at": "2026-06-20T10:08:07.513585+00:00",
   "source_documents": [
     {
       "year": 2021,
@@ -1853,7 +1853,7 @@
       "local_resolution_code": null,
       "title": "16 års valgret",
       "source_file": "Vedtagne resolutioner 2022.docx",
-      "body": "Radikale Venstre vil arbejde for, at valgretsalderen sænkes til 16 år for alle valg i Danmark.\nValgret bør begrænses mindst muligt. En væsentlig årsag til en valgretsalder må formodes at være, at man skal vide nok til kvalificeret at kunne tage stilling. I Danmark har vi 10 års undervisningspligt, hvilket de fleste gennemfører, når de er omkring 16. Derfor må en 16-årig forventes at vide nok til kvalificeret at kunne tage stilling til, hvem de vil stemme på ved et valg.\nvil af grundlovens §30 føre også til valgbarhed for 16-årige. Alternativt vil valgbarhed og valgret skulle skilles ad i en grundlovsændring. Denne resolution tager ikke stilling til, hvilken af de metoder, der ønskes.",
+      "body": "Radikale Venstre vil arbejde for, at valgretsalderen sænkes til 16 år for alle valg i Danmark.\nValgret bør begrænses mindst muligt. En væsentlig årsag til en valgretsalder må formodes at være, at man skal vide nok til kvalificeret at kunne tage stilling. I Danmark har vi 10 års undervisningspligt, hvilket de fleste gennemfører, når de er omkring 16. Derfor må en 16-årig forventes at vide nok til kvalificeret at kunne tage stilling til, hvem de vil stemme på ved et valg.\n16 års valgret vil af grundlovens §30 føre også til valgbarhed for 16-årige. Alternativt vil valgbarhed og valgret skulle skilles ad i en grundlovsændring. Denne resolution tager ikke stilling til, hvilken af de metoder, der ønskes.",
       "code": "005",
       "chapter_code": null,
       "chapter_title": "Demokrati og frihed",
@@ -2105,7 +2105,7 @@
       "local_resolution_code": null,
       "title": "Bedre muligheder for medarbejderaktieprogrammer og for medarbejdereje som demokratisk virksomhed",
       "source_file": "Vedtagne resolutioner 2022.docx",
-      "body": "Bedre muligheder for medarbejderaktieprogrammer og for medarbejdereje som demokratisk virksomhed\nRadikale Venstre mener at demokratiske virksomheder skal have samme muligheder som andre virksomhedsformer og foreslår at ophæve hindringer for etablering og drift af demokratiske virksomheder.\n• Reglerne for tildeling af medarbejderaktier i brede programmer bør forenkles, så de generelt bliver lettere at anvende for en virksomhedsejer. Her tænkes særligt på en forenkling af det skatteretlige regelsæt for brede medarbejderaktieprogrammer, der omfatter alle eller store dele af medarbejderne. Herved kan man give flere en mere attraktiv løn i form af en andel af og indflydelse på de aktiver, der skabes i virksomheden. Dette kan sikre adgang til det nødvendige talent.",
+      "body": "Radikale Venstre mener at demokratiske virksomheder skal have samme muligheder som andre virksomhedsformer og foreslår at ophæve hindringer for etablering og drift af demokratiske virksomheder.\n• Reglerne for tildeling af medarbejderaktier i brede programmer bør forenkles, så de generelt bliver lettere at anvende for en virksomhedsejer. Her tænkes særligt på en forenkling af det skatteretlige regelsæt for brede medarbejderaktieprogrammer, der omfatter alle eller store dele af medarbejderne. Herved kan man give flere en mere attraktiv løn i form af en andel af og indflydelse på de aktiver, der skabes i virksomheden. Dette kan sikre adgang til det nødvendige talent.",
       "code": "014",
       "chapter_code": null,
       "chapter_title": "Arbejdsmarked, erhvervspolitik og offentlig sektor",
@@ -2301,7 +2301,7 @@
       "local_resolution_code": null,
       "title": "Giv færøske kvinder ret til gratis abort i Danmark",
       "source_file": "Vedtagne resolutioner 2022.docx",
-      "body": "ved fremvisning af færøsk pas.",
+      "body": "Giv færøske kvinder ret til gratis abort i Danmark ved fremvisning af færøsk pas.",
       "code": "021",
       "chapter_code": null,
       "chapter_title": "Sundhed og etik",
@@ -6837,7 +6837,7 @@
       "local_resolution_code": "E2",
       "title": "Giv færinger og grønlændere ret til gratis abort i Danmark",
       "source_file": "Vedtagne resolutioner 2025.docx",
-      "body": "efter danske regler, herunder retten til abort før udgangen af 18. graviditetsuge og retten til abort uden forældrenes samtykke for personer, der er fyldt 15 år.",
+      "body": "Giv færinger og grønlændere ret til gratis abort i Danmark efter danske regler, herunder retten til abort før udgangen af 18. graviditetsuge og retten til abort uden forældrenes samtykke for personer, der er fyldt 15 år.",
       "code": "E2",
       "chapter_code": "E",
       "chapter_title": "Sundhed og etik",
