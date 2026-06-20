@@ -211,6 +211,33 @@ def is_known_chapter_text(text: str) -> bool:
     return text in COMMON_CHAPTERS or bare in COMMON_CHAPTERS
 
 
+
+
+def strip_repeated_title_paragraph(title: str, text: str) -> str | None:
+    """Remove a repeated title only when it is a standalone first line.
+
+    Some DOCX files contain the resolution title both as a semantic heading and
+    again as the first body paragraph. In that case the repeated body paragraph
+    should be removed. However, the title may also be the start of a real
+    sentence, for example "Giv ... ved fremvisning ..."; that must be kept.
+
+    A small compatibility case handles older DOCX exports where a repeated
+    title was concatenated with a standard "Radikale Venstre ..." body opener.
+    """
+    lines = text.splitlines()
+    if lines and clean_text(lines[0]) == title:
+        rest = clean_text("\n".join(lines[1:]))
+        return rest or None
+
+    prefix = f"{title} "
+    if text.startswith(prefix):
+        rest = text[len(prefix):].strip()
+        if rest.startswith("Radikale Venstre "):
+            return rest
+
+    return text
+
+
 def looks_like_title(text: str) -> bool:
     """Conservative fallback title detector for style-poor documents."""
     text = text.strip()
@@ -367,12 +394,13 @@ def parse_docx(
             continue
 
         if current:
-            # Some 2023 paragraphs contain "Title Body..." in the same paragraph.
-            # If that happens, remove the repeated title before adding the body.
-            if text.startswith(current["title"] + " "):
-                rest = text[len(current["title"]):].strip()
-                if rest:
-                    current["body_parts"].append(rest)
+            # Some documents repeat the title at the beginning of the body. Only
+            # remove it when it is clearly a standalone repeated title, not when
+            # the title is part of the first real sentence.
+            if not current["body_parts"]:
+                body_text = strip_repeated_title_paragraph(current["title"], text)
+                if body_text:
+                    current["body_parts"].append(body_text)
             else:
                 current["body_parts"].append(text)
 
